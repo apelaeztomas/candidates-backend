@@ -1,14 +1,7 @@
-import {
-  Controller,
-  Post,
-  UseInterceptors,
-  UploadedFile,
-  Body,
-  BadRequestException,
-} from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, Body, BadRequestException, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CandidatesService } from './candidates.service';
-import { CandidateDto } from './dto/candidate.dto';
+import { CandidateDto, UploadCandidateDto } from './dto/candidate.dto';
 
 @Controller('candidates')
 export class CandidatesController {
@@ -16,35 +9,29 @@ export class CandidatesController {
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('excel'))
-  uploadCandidate(
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  async uploadCandidate(
     @UploadedFile() file: Express.Multer.File,
-    @Body('name') name: string,
-    @Body('surname') surname: string,
-  ): CandidateDto {
-    // Validaciones
-    if (!file) {
-      throw new BadRequestException('El archivo Excel es requerido');
-    }
-    
-    if (!name || name.trim() === '') {
-      throw new BadRequestException('El nombre es requerido');
-    }
-    
-    if (!surname || surname.trim() === '') {
-      throw new BadRequestException('El apellido es requerido');
-    }
-    
-    // Valida tipo de archivo
+    @Body() body: UploadCandidateDto,
+  ): Promise<CandidateDto> {
+    const { name, surname } = body;
+
+    if (!file) throw new BadRequestException('El archivo Excel es requerido');
+
     const validExtensions = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-      'application/vnd.ms-excel', // .xls
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
     ];
-    
+
     if (!validExtensions.includes(file.mimetype)) {
       throw new BadRequestException('El archivo debe ser un Excel (.xlsx o .xls)');
     }
-    
-    // Procesa el archivo y devuelve el candidato
+
     return this.candidatesService.processExcel(file, name, surname);
+  }
+
+  @Get()
+  async getAllCandidates(): Promise<CandidateDto[]> {
+    return this.candidatesService.findAll();
   }
 }
