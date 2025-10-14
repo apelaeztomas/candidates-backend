@@ -1,4 +1,5 @@
 export class CandidateDto {
+	id?: string;
   name: string;
   surname: string;
   seniority: 'junior' | 'senior';
