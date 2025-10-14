@@ -5,33 +5,36 @@ import { CandidateDto, UploadCandidateDto } from './dto/candidate.dto';
 
 @Controller('candidates')
 export class CandidatesController {
-  constructor(private readonly candidatesService: CandidatesService) {}
+	constructor(private readonly candidatesService: CandidatesService) {}
 
-  @Post('upload')
-  @UseInterceptors(FileInterceptor('excel'))
-  @UsePipes(new ValidationPipe({ whitelist: true }))
-  async uploadCandidate(
-    @UploadedFile() file: Express.Multer.File,
-    @Body() body: UploadCandidateDto,
-  ): Promise<CandidateDto> {
-    const { name, surname } = body;
+	private toDto(candidate: any): CandidateDto {
+		return {
+			name: candidate.name,
+			surname: candidate.surname,
+			seniority: candidate.seniority as 'junior' | 'senior',
+			years: candidate.years,
+			availability: candidate.availability,
+		};
+	}
 
-    if (!file) throw new BadRequestException('El archivo Excel es requerido');
+		@Post('upload')
+		@UseInterceptors(FileInterceptor('excel'))
+		async uploadCandidate(
+			@UploadedFile() file: Express.Multer.File,
+			@Body('name') name: string,
+			@Body('surname') surname: string,
+		): Promise<CandidateDto> {
+			if (!file) throw new BadRequestException('Archivo requerido');
+			if (!name || !surname) throw new BadRequestException('Nombre y apellido requeridos');
 
-    const validExtensions = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel',
-    ];
+			const candidate = await this.candidatesService.processExcel(file, name, surname);
+			return this.toDto(candidate);
+		}
 
-    if (!validExtensions.includes(file.mimetype)) {
-      throw new BadRequestException('El archivo debe ser un Excel (.xlsx o .xls)');
-    }
 
-    return this.candidatesService.processExcel(file, name, surname);
-  }
-
-  @Get()
-  async getAllCandidates(): Promise<CandidateDto[]> {
-    return this.candidatesService.findAll();
-  }
+	@Get()
+	async getAll(): Promise<CandidateDto[]> {
+		const candidates = await this.candidatesService.getAllCandidates();
+		return candidates.map(c => this.toDto(c));
+	}
 }

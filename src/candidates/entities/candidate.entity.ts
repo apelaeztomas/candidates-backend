@@ -1,6 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-
-export type Seniority = 'junior' | 'senior';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class Candidate {
@@ -13,12 +11,12 @@ export class Candidate {
   @Column()
   surname: string;
 
-  @Column({ type: 'enum', enum: ['junior', 'senior'] })
-  seniority: Seniority;
+  @Column()
+  seniority: string;
 
   @Column('int')
   years: number;
 
-  @Column('boolean')
+  @Column()
   availability: boolean;
 }
